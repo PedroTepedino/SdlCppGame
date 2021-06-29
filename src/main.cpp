@@ -87,7 +87,29 @@ int main( int argc, char* args[] )
                 }
 
                 //Clear screen
+                SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
                 SDL_RenderClear( gRenderer );
+
+                //Render red filled quad
+                SDL_Rect fillRect = {SCREEN_WIDTH / 4, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
+                SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, 0xFF);
+                SDL_RenderFillRect(gRenderer, &fillRect);
+
+                //Render green outlined quad
+                SDL_Rect outlinedRect = {SCREEN_WIDTH / 6, SCREEN_HEIGHT / 6, SCREEN_WIDTH * 2 / 3, SCREEN_HEIGHT * 2 / 3};
+                SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0x00, 0xFF);
+                SDL_RenderDrawRect(gRenderer, &outlinedRect);
+
+                //Draw horizontal line
+                SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
+                SDL_RenderDrawLine(gRenderer, 0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2);
+                
+                //Draw vertcal line of yellow dots
+                SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0x00, 0xFF);
+                for(int i = 0; i < SCREEN_HEIGHT; i += 4)
+                {
+                    SDL_RenderDrawPoint(gRenderer, SCREEN_WIDTH / 2, i);
+                }
 
                 //Apply image stretched
                 // SDL_Rect stretchRect;
@@ -98,7 +120,7 @@ int main( int argc, char* args[] )
                 // SDL_BlitScaled(gStrachedSurface, nullptr, gScreenSurface, &stretchRect);
 
                 //Render texture to screen
-                SDL_RenderCopy( gRenderer, gTexture, nullptr, nullptr );
+                // SDL_RenderCopy( gRenderer, gTexture, nullptr, nullptr );
 
                 //Update the surface
                 // SDL_UpdateWindowSurface(gWindow);
@@ -175,13 +197,14 @@ bool loadMedia()
     bool success = true;
 
     //Load default surface          
-    gTexture = loadTexture("../assets/texture.png");
-    if (gTexture == nullptr)
-    {
-        printf("Failed to load streched image!\n");
-        success = false;
-    }
+    // gTexture = loadTexture("../assets/texture.png");
+    // if (gTexture == nullptr)
+    // {
+    //     printf("Failed to load streched image!\n");
+    //     success = false;
+    // }
 
+    //Nothig to load
     return success;
 }
 
