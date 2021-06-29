@@ -31,8 +31,17 @@ void close();
 //Loads individual image
 SDL_Surface* loadSurface(const std::string& path);
 
+//Loads individual image as texture
+SDL_Texture* loadTexture(const std::string path);
+
 //The window we'll be rendering to
 SDL_Window* gWindow = nullptr;
+
+//The window renderer
+SDL_Renderer* gRenderer = nullptr;
+
+//Current displayed texture
+SDL_Texture* gTexture = nullptr;
 
 //The surface contained by the window
 SDL_Surface* gScreenSurface = nullptr;
@@ -44,7 +53,6 @@ SDL_Surface* gStrachedSurface = nullptr;
 
 int main( int argc, char* args[] )
 {
-
     // Start up SDL and create window
     if( !init() )
     {
@@ -78,17 +86,24 @@ int main( int argc, char* args[] )
                     }
                 }
 
-                //Apply image stretched
-                SDL_Rect stretchRect;
-                stretchRect.x = 0;
-                stretchRect.y = 0;
-                stretchRect.w = SCREEN_WIDTH;
-                stretchRect.h = SCREEN_HEIGHT;
-                SDL_BlitScaled(gStrachedSurface, nullptr, gScreenSurface, &stretchRect);
+                //Clear screen
+                SDL_RenderClear( gRenderer );
 
+                //Apply image stretched
+                // SDL_Rect stretchRect;
+                // stretchRect.x = 0;
+                // stretchRect.y = 0;
+                // stretchRect.w = SCREEN_WIDTH;
+                // stretchRect.h = SCREEN_HEIGHT;
+                // SDL_BlitScaled(gStrachedSurface, nullptr, gScreenSurface, &stretchRect);
+
+                //Render texture to screen
+                SDL_RenderCopy( gRenderer, gTexture, nullptr, nullptr );
 
                 //Update the surface
-                SDL_UpdateWindowSurface(gWindow);
+                // SDL_UpdateWindowSurface(gWindow);
+
+                SDL_RenderPresent( gRenderer );
             }
         }
     }
@@ -113,26 +128,40 @@ bool init()
     }
     else
     {
+        //Set texturing filter to linear
+        if(!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"))
+        {
+            printf( "Warning: Linear texture filtering not enabled!" );
+        }
+
         //Create window
         gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
-        if( gWindow == nullptr )
-        {
-            printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
-            success = false;
-        }
+        if( gWindow == NULL )
+		{
+			printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
+			success = false;
+		}
         else
-        {
-            //Initialize PNG loading
-            int imgFlags = IMG_INIT_PNG;
-            if ( !( IMG_Init( imgFlags ) & imgFlags ) )
+        {    
+            //Create renderer for window
+            gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
+            if( gRenderer == nullptr )
             {
-                printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+                printf( "Renderer could not be created! SDL_Error: %s\n", SDL_GetError() );
                 success = false;
             }
             else
-            {   
-                //Get window surface
-                gScreenSurface = SDL_GetWindowSurface( gWindow );
+            {
+                //Initialize renderer color   
+                SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+
+                //Initialize PNG loading
+                int imgFlags = IMG_INIT_PNG;
+                if ( !( IMG_Init( imgFlags ) & imgFlags ) )
+                {
+                    printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+                    success = false;
+                }
             }
         }
     }
@@ -146,8 +175,8 @@ bool loadMedia()
     bool success = true;
 
     //Load default surface          
-    gStrachedSurface = loadSurface("../assets/loaded.png");
-    if (gStrachedSurface == nullptr)
+    gTexture = loadTexture("../assets/texture.png");
+    if (gTexture == nullptr)
     {
         printf("Failed to load streched image!\n");
         success = false;
@@ -158,15 +187,18 @@ bool loadMedia()
 
 void close()
 {
-    //Deallocate surface
-    SDL_FreeSurface(gStrachedSurface);
-    gStrachedSurface = nullptr;
+    //Free loaded image
+    SDL_DestroyTexture( gTexture );
+    gTexture = nullptr;
     
     //Destroy window
-    SDL_DestroyWindow(gWindow);
+    SDL_DestroyRenderer( gRenderer );
+    SDL_DestroyWindow( gWindow );
     gWindow = nullptr;
+    gRenderer = nullptr;
 
     //Quit SDL subsystem
+    IMG_Quit();
     SDL_Quit();
 }
 
@@ -178,7 +210,7 @@ SDL_Surface* loadSurface(const std::string& path)
     SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
     if (loadedSurface == nullptr)
     {
-        printf("Unable to load image %s! SDL: %s\n", path.c_str(), SDL_GetError());
+        printf("Unable to load image %s! SDL_image: %s\n", path.c_str(), IMG_GetError());
     }
     else
     {
@@ -196,3 +228,29 @@ SDL_Surface* loadSurface(const std::string& path)
     return optimizedSurface;
 }
 
+SDL_Texture* loadTexture(const std::string path)
+{
+    //The final texture
+    SDL_Texture* newTexture = nullptr;
+
+    //Load image at specified path
+    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
+    if( loadedSurface == nullptr )
+    {
+        printf("Unable to load image %s! SDL_image: %s\n", path.c_str(), IMG_GetError());
+    }
+    else
+    {
+        //Create texture from surface
+        newTexture =  SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
+        if( newTexture == nullptr )
+        {
+            printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
+        }
+
+        //Get rid of old loaded surface
+        SDL_FreeSurface( loadedSurface );
+    }
+
+    return newTexture;
+}
