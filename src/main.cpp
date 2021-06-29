@@ -1,5 +1,6 @@
 //Using SDL and standard IO
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <cstdio>
 #include <string>
 
@@ -79,10 +80,10 @@ int main( int argc, char* args[] )
 
                 //Apply image stretched
                 SDL_Rect stretchRect;
-                stretchRect.x = SCREEN_WIDTH/4;
-                stretchRect.y = SCREEN_HEIGHT/4;
-                stretchRect.w = SCREEN_WIDTH/2;
-                stretchRect.h = SCREEN_HEIGHT/2;
+                stretchRect.x = 0;
+                stretchRect.y = 0;
+                stretchRect.w = SCREEN_WIDTH;
+                stretchRect.h = SCREEN_HEIGHT;
                 SDL_BlitScaled(gStrachedSurface, nullptr, gScreenSurface, &stretchRect);
 
 
@@ -121,8 +122,18 @@ bool init()
         }
         else
         {
-            //Get window surface
-            gScreenSurface = SDL_GetWindowSurface( gWindow );
+            //Initialize PNG loading
+            int imgFlags = IMG_INIT_PNG;
+            if ( !( IMG_Init( imgFlags ) & imgFlags ) )
+            {
+                printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+                success = false;
+            }
+            else
+            {   
+                //Get window surface
+                gScreenSurface = SDL_GetWindowSurface( gWindow );
+            }
         }
     }
 
@@ -134,8 +145,8 @@ bool loadMedia()
     //Loading success flag
     bool success = true;
 
-    //Load default surface
-    gStrachedSurface = loadSurface("../assets/stretch.bmp");
+    //Load default surface          
+    gStrachedSurface = loadSurface("../assets/loaded.png");
     if (gStrachedSurface == nullptr)
     {
         printf("Failed to load streched image!\n");
@@ -164,7 +175,7 @@ SDL_Surface* loadSurface(const std::string& path)
     SDL_Surface* optimizedSurface = nullptr;
 
     //Load image at specific path
-    SDL_Surface* loadedSurface = SDL_LoadBMP( path.c_str() );
+    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
     if (loadedSurface == nullptr)
     {
         printf("Unable to load image %s! SDL: %s\n", path.c_str(), SDL_GetError());
