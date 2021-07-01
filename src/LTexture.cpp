@@ -2,7 +2,7 @@
 #include <SDL2/SDL_image.h>
 #include "LTexture.h"
 #include "globals.h"
-
+#include "../Debugging/Debug.h"
 
 
 LTexture::LTexture()
@@ -19,7 +19,7 @@ LTexture::~LTexture()
     free();
 }
 
-bool LTexture::loadFromFile(std::string path)
+bool LTexture::loadFromFile(const std::string& path)
 {
     //Get rid of preexisting texture
     free();
@@ -31,7 +31,8 @@ bool LTexture::loadFromFile(std::string path)
     SDL_Surface* loadedSurface = IMG_Load(path.c_str());
     if(loadedSurface == nullptr)
     {
-        printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
+//        printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
+        Debug::Log("Unable to load image %s! SDL_image Error: %s", path.c_str(), IMG_GetError());
     }
     else
     {
@@ -42,7 +43,8 @@ bool LTexture::loadFromFile(std::string path)
         newTexture = SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
         if( newTexture == nullptr )
         {
-            printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
+//            printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
+            Debug::Log("Unable to create texture from %s! SDL Error: %s", path.c_str(), SDL_GetError());
         }
         else
         {
@@ -72,19 +74,28 @@ void LTexture::free()
     }
 }
 
-void LTexture::render(int x, int y)
+void LTexture::render(int x, int y, SDL_Rect* clip)
 {
     //Set rendering space and render screen
     SDL_Rect renderQuad = {x, y, mWidth, mHeight};
-    SDL_RenderCopy(gRenderer, mTexture, nullptr, &renderQuad);
+
+    //Set clip rendering dimensions
+    if(clip != nullptr)
+    {
+        renderQuad.w = clip->w;
+        renderQuad.h = clip->h;
+    }
+
+    //Render to scene
+    SDL_RenderCopy(gRenderer, mTexture, clip, &renderQuad);
 }
 
-int LTexture::getWidth()
+int LTexture::getWidth() const
 {
     return mWidth;
 }
 
-int LTexture::getHeight()
+int LTexture::getHeight() const
 {
     return mHeight;
 }

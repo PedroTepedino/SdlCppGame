@@ -1,5 +1,6 @@
-#ifndef LTEXTURE
-#define LTEXTURE
+#ifndef LTEXTURE_H
+#define LTEXTURE_H
+
 #include <string>
 #include <SDL2/SDL.h>
 
@@ -14,17 +15,17 @@ public:
     ~LTexture();
 
     //Loads image at specified path
-    bool loadFromFile(std::string path);
+    bool loadFromFile(const std::string& path);
 
     //Dealocate texture
     void free();
 
     //Renders texture at a given point
-    void render(int x, int y);
+    void render(int x, int y, SDL_Rect* clip = nullptr);
 
     //Gets image dimesions
-    int getWidth();
-    int getHeight();
+    int getWidth() const;
+    int getHeight() const;
 
 private:
     //The actual harware texture
@@ -34,4 +35,5 @@ private:
     int mWidth;
     int mHeight;
 };
-#endif //LTEXTURE
+
+#endif
