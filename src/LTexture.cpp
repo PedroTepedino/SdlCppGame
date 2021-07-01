@@ -74,6 +74,12 @@ void LTexture::free()
     }
 }
 
+void LTexture::setColor(Uint8 red, Uint8 green, Uint8 blue)
+{
+    //Modulate texture
+    SDL_SetTextureColorMod( mTexture, red, green, blue );
+}
+
 void LTexture::render(int x, int y, SDL_Rect* clip)
 {
     //Set rendering space and render screen

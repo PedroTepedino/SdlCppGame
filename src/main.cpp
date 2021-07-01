@@ -42,6 +42,7 @@ SDL_Window* gWindow = nullptr;
 SDL_Renderer* gRenderer = nullptr;
 
 //Scene textures
+LTexture gModulateTexture;
 SDL_Rect gSpriteClips[4];
 LTexture gSpriteSheetTexture;
 //LTexture gFooTexture;
@@ -58,8 +59,7 @@ SDL_Surface* gScreenSurface = nullptr;
 SDL_Surface* gStrachedSurface = nullptr;
 
 //The image we will load and show on the screen
-
-int main( int argc, char* args[] )
+int main(int argc, char* args[] )
 {
     // Start up SDL and create window
     if( !init() )
@@ -83,6 +83,11 @@ int main( int argc, char* args[] )
             //Event handler
             SDL_Event e;
 
+            //Modulation components
+            Uint8 r = 255;
+            Uint8 g = 255;
+            Uint8 b = 255;
+
             //While application is running
             while(!quit)
             {
@@ -92,7 +97,48 @@ int main( int argc, char* args[] )
                     //User requests quit
                     if (e.type == SDL_QUIT)
                     {
-                        quit =  true;
+                        quit = true;
+                    }
+                    //On keypress change rgb values
+                    else if (e.type == SDL_KEYDOWN)
+                    {
+                        switch (e.key.keysym.sym)
+                        {
+                            //Exit on ESCAPE
+                            case SDLK_ESCAPE:
+                                quit = true;
+                                break;
+
+                            //Increase red
+                            case SDLK_q:
+                                r += 32;
+                                break;
+
+                            //Increase green
+                            case SDLK_w:
+                                g += 32;
+                                break;
+
+                            //Increase blue
+                            case SDLK_e:
+                                b += 32;
+                                break;
+
+                            //Decrease red
+                            case SDLK_a:
+                                r -= 32;
+                                break;
+
+                            //Decrease green
+                            case SDLK_s:
+                                g -= 32;
+                                break;
+
+                            //Decrease blue
+                            case SDLK_d:
+                                b -= 32;
+                                break;
+                        }
                     }
                 }
 
@@ -100,17 +146,9 @@ int main( int argc, char* args[] )
                 SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
                 SDL_RenderClear( gRenderer );
 
-                //Render top left sprite
-                gSpriteSheetTexture.render(0, 0, &gSpriteClips[0]);
-
-                //Render top right sprite
-                gSpriteSheetTexture.render(SCREEN_WIDTH - gSpriteClips[1].w, 0, &gSpriteClips[1]);
-
-                //Render top left sprite
-                gSpriteSheetTexture.render(0, SCREEN_HEIGHT - gSpriteClips[2].h, &gSpriteClips[2]);
-
-                //Render top right sprite
-                gSpriteSheetTexture.render(SCREEN_WIDTH - gSpriteClips[3].w, SCREEN_HEIGHT - gSpriteClips[3].h, &gSpriteClips[3]);
+                //Modulate and render texture
+                gModulateTexture.setColor(r, g, b);
+                gModulateTexture.render(0,0);
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
@@ -189,29 +227,36 @@ bool loadMedia()
     //Loading success flag
     bool success = true;
 
-    //Load sprite sheet texture
-    if( !gSpriteSheetTexture.loadFromFile("../assets/dots.png") )
+    if( !gModulateTexture.loadFromFile("../assets/colors.png") )
     {
-//        printf("Failed to load sprite sheet texture!\n");
-//        log << "Failed to load sprite sheet texture!" << std::endl;
-        Debug::Log("Failed to load sprite sheet texture!");
-
+        Debug::Log("Failed to load modulate texture!");
         success = false;
     }
-    else
-    {
-        //Set top left sprite
-        gSpriteClips[0] = { .x = 0, .y = 0, .w = 100, .h = 100};
 
-        //Set top right sprite
-        gSpriteClips[1] = { .x = 100, .y = 0, .w = 100, .h = 100};
+//    //Load sprite sheet texture
+//    if( !gSpriteSheetTexture.loadFromFile("../assets/dots.png") )
+//    {
+// //        printf("Failed to load sprite sheet texture!\n");
+// //        log << "Failed to load sprite sheet texture!" << std::endl;
+//        Debug::Log("Failed to load sprite sheet texture!");
+//
+//        success = false;
+//    }
+//    else
+//    {
+//        //Set top left sprite
+//        gSpriteClips[0] = { .x = 0, .y = 0, .w = 100, .h = 100};
+//
+//        //Set top right sprite
+//        gSpriteClips[1] = { .x = 100, .y = 0, .w = 100, .h = 100};
+//
+//        //Set bottom left sprite
+//        gSpriteClips[2] = { .x = 0, .y = 100, .w = 100, .h = 100};
+//
+//        //Set bottom right sprite
+//        gSpriteClips[3] = { .x = 100, .y = 100, .w = 100, .h = 100};
+//    }
 
-        //Set bottom left sprite
-        gSpriteClips[2] = { .x = 0, .y = 100, .w = 100, .h = 100};
-
-        //Set bottom right sprite
-        gSpriteClips[3] = { .x = 100, .y = 100, .w = 100, .h = 100};
-    }
 
     return success;
 }

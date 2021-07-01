@@ -20,6 +20,9 @@ public:
     //Dealocate texture
     void free();
 
+    //Set color modulation
+    void setColor( Uint8 red, Uint8 green, Uint8 blue );
+
     //Renders texture at a given point
     void render(int x, int y, SDL_Rect* clip = nullptr);
 
