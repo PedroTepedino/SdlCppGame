@@ -15,7 +15,10 @@ public:
     ~LTexture();
 
     //Loads image at specified path
-    bool loadFromFile(const std::string& path);
+    bool loadFromFile( const std::string& path );
+
+    //Creates image from font string
+    bool loadFromRenderedText( const std::string& textureText, SDL_Color textColor );
 
     //Dealocate texture
     void free();
@@ -30,7 +33,7 @@ public:
     void  setAlpha( Uint8 alpha );
 
     //Renders texture at a given point
-    void render(int x, int y, SDL_Rect* clip = nullptr);
+    void render(int x, int y, SDL_Rect* clip = nullptr, double angle = 0.0, SDL_Point* center = nullptr, SDL_RendererFlip flip = SDL_FLIP_NONE);
 
     //Gets image dimesions
     int getWidth() const;

@@ -4,5 +4,6 @@
 #include<SDL2/SDL.h>
 
 extern SDL_Renderer* gRenderer;
+extern TTF_Font *gFont;
 
 #endif

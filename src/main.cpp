@@ -1,7 +1,9 @@
 //Using SDL and standard IO
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 #include <string>
+#include <cmath>
 #include "LTexture.h"
 #include "../Debugging/Debug.h"
 
@@ -29,25 +31,17 @@ bool loadMedia();
 //Frees media and shuts down SDL
 void close();
 
-//Loads individual image
-SDL_Surface* loadSurface(const std::string& path);
-
-//Loads individual image as texture
-SDL_Texture* loadTexture(std::string path);
-
 //The window we'll be rendering to
 SDL_Window* gWindow = nullptr;
 
 //The window renderer
 SDL_Renderer* gRenderer = nullptr;
 
-//Walking animation
-const int WALKING_ANIMATION_FRAMES = 4;
-SDL_Rect gSpriteClips[ WALKING_ANIMATION_FRAMES] ;
-LTexture gSpriteSheetTexture;
+//Globally used font
+TTF_Font *gFont = nullptr;
 
-//The surface contained by the window
-SDL_Surface* gScreenSurface = nullptr;
+LTexture gTextTexture;
+
 
 //The image we will load and show on the screen
 int main(int argc, char* args[] )
@@ -83,6 +77,12 @@ int main(int argc, char* args[] )
             //Current animation frame
             int frame = 0;
 
+            //Angle of rotation
+            double degrees = 0;
+
+            //Flip type
+            SDL_RendererFlip flipType = SDL_FLIP_NONE;
+
             //While application is running
             while(!quit)
             {
@@ -112,20 +112,10 @@ int main(int argc, char* args[] )
                 SDL_RenderClear( gRenderer );
 
                 //Render current frame
-                SDL_Rect* currentClip = &gSpriteClips[ frame / 4 ];
-                gSpriteSheetTexture.render((SCREEN_WIDTH - currentClip->w) / 2, (SCREEN_HEIGHT - currentClip->h) / 2, currentClip);
+                gTextTexture.render((SCREEN_WIDTH - gTextTexture.getWidth()) / 2, (SCREEN_HEIGHT - gTextTexture.getHeight()) / 2 );
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
-
-                //Go to next frame
-                frame++;
-
-                //Cycle animation
-                if( frame / 4 >= WALKING_ANIMATION_FRAMES )
-                {
-                    frame = 0;
-                }
             }
         }
     }
@@ -167,7 +157,7 @@ bool init()
             success = false;
 		}
         else
-        {    
+        {
             //Create renderer for window
             gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
             if( gRenderer == nullptr )
@@ -178,7 +168,7 @@ bool init()
             }
             else
             {
-                //Initialize renderer color   
+                //Initialize renderer color
                 SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
                 //Initialize PNG loading
@@ -187,6 +177,13 @@ bool init()
                 {
 //                    printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
                     Debug::Log("SDL_image could not initialize! SDL_image Error: %s", IMG_GetError());
+                    success = false;
+                }
+
+                //Initialize SDL_ttf
+                if( TTF_Init() == -1)
+                {
+                    Debug::Log("SDL_ttf could not initialize! SDL_ttf Error: %s!", TTF_GetError());
                     success = false;
                 }
             }
@@ -201,19 +198,22 @@ bool loadMedia()
     //Loading success flag
     bool success = true;
 
-    //Load sprite sheet texture
-    if (!gSpriteSheetTexture.loadFromFile("../assets/foo.png"))
+    //Open the font
+    gFont = TTF_OpenFont("../fonts/lazy.ttf", 28);
+    if(gFont == nullptr)
     {
-        Debug::Log("Failied to load walking animation texture!");
-        success = false;
+         Debug::Log("Falied to load lazy font! SDL_ttf Error: %s!", TTF_GetError());
+         success = false;
     }
     else
     {
-        //Set sprite clips
-        gSpriteClips[ 0 ] = {.x = 0, .y = 0, .w = 64, .h = 205};
-        gSpriteClips[ 1 ] = {.x = 64, .y = 0, .w = 64, .h = 205};
-        gSpriteClips[ 2 ] = {.x = 128, .y = 0, .w = 64, .h = 205};
-        gSpriteClips[ 3 ] = {.x = 196, .y = 0, .w = 64, .h = 205};
+        //Render text
+        SDL_Color textColor = {0, 0, 0};
+        if (!gTextTexture.loadFromRenderedText("The quick brown fox jumps over the lazy dog", textColor ))
+        {
+            Debug::Log("Failed to render text texture!");
+            success = false;
+        }
     }
 
     return success;
@@ -222,6 +222,11 @@ bool loadMedia()
 void close()
 {
     //Free loaded images
+    gTextTexture.free();
+
+    //Free global font
+    TTF_CloseFont( gFont );
+    gFont = nullptr;
 
     //Destroy window
     SDL_DestroyRenderer( gRenderer );
@@ -230,63 +235,7 @@ void close()
     gRenderer = nullptr;
 
     //Quit SDL subsystem
+    TTF_Quit();
     IMG_Quit();
     SDL_Quit();
-}
-
-SDL_Surface* loadSurface(const std::string& path)
-{
-    SDL_Surface* optimizedSurface = nullptr;
-
-    //Load image at specific path
-    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
-    if (loadedSurface == nullptr)
-    {
-//        printf("Unable to load image %s! SDL_image: %s\n", path.c_str(), IMG_GetError());
-        Debug::Log("Unable to load image %s! SDL_image: %s", path.c_str(), IMG_GetError());
-    }
-    else
-    {
-        //Convert surface to screen format
-        optimizedSurface = SDL_ConvertSurface(loadedSurface, gScreenSurface->format, 0);
-        if (optimizedSurface == nullptr)
-        {
-//            printf("Unable to optimize image %s!\nSDL Error: %s\n", path.c_str(), SDL_GetError());
-            Debug::Log("Unable to optimize image %s! SDL Error: %s", path.c_str(), SDL_GetError());
-        }
-
-        //Get Rid of old loaded surface
-        SDL_FreeSurface(loadedSurface);
-    }
-
-    return optimizedSurface;
-}
-
-SDL_Texture* loadTexture(const std::string path)
-{
-    //The final texture
-    SDL_Texture* newTexture = nullptr;
-
-    //Load image at specified path
-    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
-    if( loadedSurface == nullptr )
-    {
-//        printf("Unable to load image %s! SDL_image: %s\n", path.c_str(), IMG_GetError());
-        Debug::Log("Unable to load image %s! SDL_image: %s", path.c_str(), IMG_GetError());
-    }
-    else
-    {
-        //Create texture from surface
-        newTexture =  SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
-        if( newTexture == nullptr )
-        {
-//            printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
-            Debug::Log("Unable to create texture from %s! SDL Error: %s", path.c_str(), SDL_GetError());
-        }
-
-        //Get rid of old loaded surface
-        SDL_FreeSurface( loadedSurface );
-    }
-
-    return newTexture;
 }
