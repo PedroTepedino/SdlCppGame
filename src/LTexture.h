@@ -17,8 +17,10 @@ public:
     //Loads image at specified path
     bool loadFromFile( const std::string& path );
 
+    #if defined(SDL_TTF_MAJOR_VERSION)
     //Creates image from font string
     bool loadFromRenderedText( const std::string& textureText, SDL_Color textColor );
+    #endif
 
     //Dealocate texture
     void free();

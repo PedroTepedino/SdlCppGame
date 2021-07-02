@@ -11,6 +11,6 @@ find_package(SDL2_ttf REQUIRED)
 
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2IMAGE_INCLUDE_DIR} ${SDL2_TTF_INCLUDE_DIR})
 
-set(SOURCE src/main.cpp src/LTexture.cpp Debugging/Debug.cpp)
+set(SOURCE src/main.cpp src/LTexture.cpp Debugging/Debug.cpp src/LButton.cpp)
 add_executable(SdlGame ${SOURCE})
 target_link_libraries(SdlGame ${SDL2_LIBRARY} ${SDL2IMAGE_LIBRARY} ${SDL2_TTF_LIBRARY} -lmingw32 -lSDL2main -lSDL2 -mwindows)

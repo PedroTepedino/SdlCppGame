@@ -63,6 +63,7 @@ bool LTexture::loadFromFile(const std::string& path)
     return mTexture != nullptr;
 }
 
+#if defined(SDL_TTF_MAJOR_VERSION)
 bool LTexture::loadFromRenderedText(const std::string& textureText, SDL_Color textColor)
 {
     //Get rid of preexisting texture
@@ -96,6 +97,7 @@ bool LTexture::loadFromRenderedText(const std::string& textureText, SDL_Color te
     //Return success
     return mTexture != nullptr;
 }
+#endif
 
 void LTexture::free()
 {
