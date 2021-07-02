@@ -41,23 +41,13 @@ SDL_Window* gWindow = nullptr;
 //The window renderer
 SDL_Renderer* gRenderer = nullptr;
 
-//Scene textures
-LTexture gModulatedTexture;
-LTexture gBackgroundTexture;
-SDL_Rect gSpriteClips[4];
+//Walking animation
+const int WALKING_ANIMATION_FRAMES = 4;
+SDL_Rect gSpriteClips[ WALKING_ANIMATION_FRAMES] ;
 LTexture gSpriteSheetTexture;
-//LTexture gFooTexture;
-//LTexture gBackgroundTexture;
-LTexture gPose;
-
-//Current displayed texture
-SDL_Texture* gTexture = nullptr;
 
 //The surface contained by the window
 SDL_Surface* gScreenSurface = nullptr;
-
-// The images that correspond to a keypress
-SDL_Surface* gStrachedSurface = nullptr;
 
 //The image we will load and show on the screen
 int main(int argc, char* args[] )
@@ -90,6 +80,9 @@ int main(int argc, char* args[] )
             Uint8 b = 255;
             Uint8 a = 255;
 
+            //Current animation frame
+            int frame = 0;
+
             //While application is running
             while(!quit)
             {
@@ -110,64 +103,6 @@ int main(int argc, char* args[] )
                             case SDLK_ESCAPE:
                                 quit = true;
                                 break;
-
-                            //Increase red
-                            case SDLK_q:
-                                r += 32;
-                                break;
-
-                            //Increase green
-                            case SDLK_w:
-                                g += 32;
-                                break;
-
-                            //Increase blue
-                            case SDLK_e:
-                                b += 32;
-                                break;
-
-                            //Decrease red
-                            case SDLK_a:
-                                r -= 32;
-                                break;
-
-                            //Decrease green
-                            case SDLK_s:
-                                g -= 32;
-                                break;
-
-                            //Decrease blue
-                            case SDLK_d:
-                                b -= 32;
-                                break;
-
-                            //Increase alpha on r
-                            case SDLK_r:
-                                //Cap if over 255
-                                if (a + 32 > 255)
-                                {
-                                    a = 255;
-                                }
-                                //Increment otherwise
-                                else
-                                {
-                                    a += 32;
-                                }
-                                break;
-
-                            //Decrease alpha on f
-                            case SDLK_f:
-                                //Cap if below 0
-                                if( a - 32 < 0)
-                                {
-                                    a = 0;
-                                }
-                                //Decrement otherwise
-                                else
-                                {
-                                    a -= 32;
-                                }
-                                break;
                         }
                     }
                 }
@@ -176,16 +111,21 @@ int main(int argc, char* args[] )
                 SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
                 SDL_RenderClear( gRenderer );
 
-                //Render background
-                gBackgroundTexture.render(0,0);
-
-                //Render front blended
-                gModulatedTexture.setColor( r, g, b );
-                gModulatedTexture.setAlpha( a );
-                gModulatedTexture.render( 0, 0 );
+                //Render current frame
+                SDL_Rect* currentClip = &gSpriteClips[ frame / 4 ];
+                gSpriteSheetTexture.render((SCREEN_WIDTH - currentClip->w) / 2, (SCREEN_HEIGHT - currentClip->h) / 2, currentClip);
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
+
+                //Go to next frame
+                frame++;
+
+                //Cycle animation
+                if( frame / 4 >= WALKING_ANIMATION_FRAMES )
+                {
+                    frame = 0;
+                }
             }
         }
     }
@@ -229,7 +169,7 @@ bool init()
         else
         {    
             //Create renderer for window
-            gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
+            gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
             if( gRenderer == nullptr )
             {
 //                printf( "Renderer could not be created! SDL_Error: %s\n", SDL_GetError() );
@@ -261,23 +201,19 @@ bool loadMedia()
     //Loading success flag
     bool success = true;
 
-    //Load front alpha texture
-    if( !gModulatedTexture.loadFromFile("../assets/fadeout.png") )
+    //Load sprite sheet texture
+    if (!gSpriteSheetTexture.loadFromFile("../assets/foo.png"))
     {
-        Debug::Log("Failed to load front texture! ");
+        Debug::Log("Failied to load walking animation texture!");
         success = false;
     }
     else
     {
-        //Set standard alpha blending
-        gModulatedTexture.setBlendMode(SDL_BLENDMODE_BLEND);
-    }
-
-    //Load background texture
-    if (!gBackgroundTexture.loadFromFile("../assets/fadein.png"))
-    {
-        Debug::Log("Failed to load background texture!");
-        success = false;
+        //Set sprite clips
+        gSpriteClips[ 0 ] = {.x = 0, .y = 0, .w = 64, .h = 205};
+        gSpriteClips[ 1 ] = {.x = 64, .y = 0, .w = 64, .h = 205};
+        gSpriteClips[ 2 ] = {.x = 128, .y = 0, .w = 64, .h = 205};
+        gSpriteClips[ 3 ] = {.x = 196, .y = 0, .w = 64, .h = 205};
     }
 
     return success;
