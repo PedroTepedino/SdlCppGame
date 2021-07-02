@@ -42,7 +42,8 @@ SDL_Window* gWindow = nullptr;
 SDL_Renderer* gRenderer = nullptr;
 
 //Scene textures
-LTexture gModulateTexture;
+LTexture gModulatedTexture;
+LTexture gBackgroundTexture;
 SDL_Rect gSpriteClips[4];
 LTexture gSpriteSheetTexture;
 //LTexture gFooTexture;
@@ -87,6 +88,7 @@ int main(int argc, char* args[] )
             Uint8 r = 255;
             Uint8 g = 255;
             Uint8 b = 255;
+            Uint8 a = 255;
 
             //While application is running
             while(!quit)
@@ -138,6 +140,34 @@ int main(int argc, char* args[] )
                             case SDLK_d:
                                 b -= 32;
                                 break;
+
+                            //Increase alpha on r
+                            case SDLK_r:
+                                //Cap if over 255
+                                if (a + 32 > 255)
+                                {
+                                    a = 255;
+                                }
+                                //Increment otherwise
+                                else
+                                {
+                                    a += 32;
+                                }
+                                break;
+
+                            //Decrease alpha on f
+                            case SDLK_f:
+                                //Cap if below 0
+                                if( a - 32 < 0)
+                                {
+                                    a = 0;
+                                }
+                                //Decrement otherwise
+                                else
+                                {
+                                    a -= 32;
+                                }
+                                break;
                         }
                     }
                 }
@@ -146,9 +176,13 @@ int main(int argc, char* args[] )
                 SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
                 SDL_RenderClear( gRenderer );
 
-                //Modulate and render texture
-                gModulateTexture.setColor(r, g, b);
-                gModulateTexture.render(0,0);
+                //Render background
+                gBackgroundTexture.render(0,0);
+
+                //Render front blended
+                gModulatedTexture.setColor( r, g, b );
+                gModulatedTexture.setAlpha( a );
+                gModulatedTexture.render( 0, 0 );
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
@@ -227,36 +261,24 @@ bool loadMedia()
     //Loading success flag
     bool success = true;
 
-    if( !gModulateTexture.loadFromFile("../assets/colors.png") )
+    //Load front alpha texture
+    if( !gModulatedTexture.loadFromFile("../assets/fadeout.png") )
     {
-        Debug::Log("Failed to load modulate texture!");
+        Debug::Log("Failed to load front texture! ");
         success = false;
     }
+    else
+    {
+        //Set standard alpha blending
+        gModulatedTexture.setBlendMode(SDL_BLENDMODE_BLEND);
+    }
 
-//    //Load sprite sheet texture
-//    if( !gSpriteSheetTexture.loadFromFile("../assets/dots.png") )
-//    {
-// //        printf("Failed to load sprite sheet texture!\n");
-// //        log << "Failed to load sprite sheet texture!" << std::endl;
-//        Debug::Log("Failed to load sprite sheet texture!");
-//
-//        success = false;
-//    }
-//    else
-//    {
-//        //Set top left sprite
-//        gSpriteClips[0] = { .x = 0, .y = 0, .w = 100, .h = 100};
-//
-//        //Set top right sprite
-//        gSpriteClips[1] = { .x = 100, .y = 0, .w = 100, .h = 100};
-//
-//        //Set bottom left sprite
-//        gSpriteClips[2] = { .x = 0, .y = 100, .w = 100, .h = 100};
-//
-//        //Set bottom right sprite
-//        gSpriteClips[3] = { .x = 100, .y = 100, .w = 100, .h = 100};
-//    }
-
+    //Load background texture
+    if (!gBackgroundTexture.loadFromFile("../assets/fadein.png"))
+    {
+        Debug::Log("Failed to load background texture!");
+        success = false;
+    }
 
     return success;
 }
@@ -264,7 +286,6 @@ bool loadMedia()
 void close()
 {
     //Free loaded images
-
 
     //Destroy window
     SDL_DestroyRenderer( gRenderer );
