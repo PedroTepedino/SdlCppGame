@@ -3,8 +3,9 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include "LTexture.h"
-#include "../Debugging/Debug.h"
 #include "LButton.h"
+#include "../Debugging/Debug.h"
+
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -44,6 +45,13 @@ LTexture gTextTexture;
 LTexture gButtonSpriteSheetTexture;
 SDL_Rect gSpriteClips[ BUTTON_SPRITE_TOTAL ];
 
+LTexture gUpTexture;
+LTexture gDownTexture;
+LTexture gLeftTexture;
+LTexture gRightTexture;
+LTexture gPressTexture;
+
+
 //Buttons objects
 LButton gButtons[ TOTAL_BUTTONS ];
 
@@ -73,7 +81,8 @@ int main(int argc, char* args[] )
             //Event handler
             SDL_Event e;
 
-
+            //Current rendererd texture
+            LTexture* currentTexture = nullptr;
 
             //While application is running
             while(!quit)
@@ -104,15 +113,41 @@ int main(int argc, char* args[] )
                     }
                 }
 
+                //Set texture based on current keystate
+                const Uint8* currentKeyStates = SDL_GetKeyboardState( nullptr );
+                if ( currentKeyStates[SDL_SCANCODE_UP] )
+                {
+                    currentTexture = &gUpTexture;
+                }
+                else if ( currentKeyStates[SDL_SCANCODE_DOWN] )
+                {
+                    currentTexture = &gDownTexture;
+                }
+                else if ( currentKeyStates[SDL_SCANCODE_LEFT] )
+                {
+                    currentTexture = &gLeftTexture;
+                }
+                else if ( currentKeyStates[SDL_SCANCODE_RIGHT] )
+                {
+                    currentTexture = &gRightTexture;
+                }
+                else 
+                {
+                    currentTexture = &gPressTexture;
+                }
+
                 //Clear screen
                 SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
                 SDL_RenderClear( gRenderer );
 
-                //Render buttons
-                for (auto & gButton : gButtons)
-                {
-                    gButton.render();
-                }
+                // //Render buttons
+                // for (auto & gButton : gButtons)
+                // {
+                //     gButton.render();
+                // }
+
+                //Render  current textur
+                currentTexture->render(0, 0);
 
                 //Update screen
                 SDL_RenderPresent( gRenderer );
@@ -198,25 +233,55 @@ bool loadMedia()
     //Loading success flag
     bool success = true;
 
-    if (!gButtonSpriteSheetTexture.loadFromFile("../assets/button.png"))
+    if(!gUpTexture.loadFromFile("../assets/up.png"))
     {
-        Debug::Log("Failed to load sprite! SDL_ttf Error: %s!", TTF_GetError());
-        success = false;
+        Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+        success = false;    
     }
-    else
+
+    if(!gDownTexture.loadFromFile("../assets/down.png"))
     {
-        //Set sprites
-        for(int i = 0; i < BUTTON_SPRITE_TOTAL; i++)
-        {
-            gSpriteClips[i] = {.x = 0, .y = i * 200, .w = BUTTON_WIDTH, .h = BUTTON_HEIGHT};
-        }
-
-        gButtons[0].setPosition(0,0);
-        gButtons[1].setPosition(SCREEN_WIDTH - BUTTON_WIDTH,0);
-        gButtons[2].setPosition(0,SCREEN_HEIGHT - BUTTON_HEIGHT);
-        gButtons[3].setPosition(SCREEN_WIDTH - BUTTON_WIDTH,SCREEN_HEIGHT - BUTTON_HEIGHT);
-
+        Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+        success = false;    
     }
+
+    if(!gLeftTexture.loadFromFile("../assets/left.png"))
+    {
+        Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+        success = false;    
+    }
+
+    if(!gRightTexture.loadFromFile("../assets/right.png"))
+    {
+        Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+        success = false;    
+    }
+
+    if(!gPressTexture.loadFromFile("../assets/press.png"))
+    {
+        Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+        success = false;    
+    }
+
+    // if (!gButtonSpriteSheetTexture.loadFromFile("../assets/button.png"))
+    // {
+    //     Debug::Log("Failed to load sprite! SDL_ttf Error: %s!", TTF_GetError());
+    //     success = false;
+    // }
+    // else
+    // {
+    //     //Set sprites
+    //     for(int i = 0; i < BUTTON_SPRITE_TOTAL; i++)
+    //     {
+    //         gSpriteClips[i] = {.x = 0, .y = i * 200, .w = BUTTON_WIDTH, .h = BUTTON_HEIGHT};
+    //     }
+
+    //     gButtons[0].setPosition(0,0);
+    //     gButtons[1].setPosition(SCREEN_WIDTH - BUTTON_WIDTH,0);
+    //     gButtons[2].setPosition(0,SCREEN_HEIGHT - BUTTON_HEIGHT);
+    //     gButtons[3].setPosition(SCREEN_WIDTH - BUTTON_WIDTH,SCREEN_HEIGHT - BUTTON_HEIGHT);
+
+    // }
 
     return success;
 }

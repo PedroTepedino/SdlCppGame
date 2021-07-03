@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.16)
 project(SdlGame)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -13,4 +13,11 @@ include_directories(${SDL2_INCLUDE_DIR} ${SDL2IMAGE_INCLUDE_DIR} ${SDL2_TTF_INCL
 
 set(SOURCE src/main.cpp src/LTexture.cpp Debugging/Debug.cpp src/LButton.cpp)
 add_executable(SdlGame ${SOURCE})
+
+if (WIN32)
 target_link_libraries(SdlGame ${SDL2_LIBRARY} ${SDL2IMAGE_LIBRARY} ${SDL2_TTF_LIBRARY} -lmingw32 -lSDL2main -lSDL2 -mwindows)
+endif(WIN32)
+
+if (UNIX)
+target_link_libraries(SdlGame ${SDL2_LIBRARY} ${SDL2IMAGE_LIBRARY} ${SDL2_TTF_LIBRARY} )
+endif (UNIX)
