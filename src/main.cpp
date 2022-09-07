@@ -1,6 +1,11 @@
 //Using SDL and standard IO
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_error.h>
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_gamecontroller.h>
+#include <SDL2/SDL_haptic.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_joystick.h>
 #include <SDL2/SDL_ttf.h>
 #include <cmath>
 #include "LTexture.h"
@@ -60,8 +65,12 @@ LTexture gArrowTexture;
 //Buttons objects
 LButton gButtons[ TOTAL_BUTTONS ];
 
-//Game Controller 1 handler
-SDL_Joystick* gGameController = nullptr;
+//Game Controller handler with force feedback
+SDL_GameController* gGameController = nullptr;
+
+//Joystick handler with haptic
+SDL_Joystick* gJoystick = nullptr;
+SDL_Haptic* gJoyHaptic = nullptr;
 
 //The image we will load and show on the screen
 int main(int argc, char* args[] )
@@ -160,6 +169,28 @@ int main(int argc, char* args[] )
 							}
 						}
 					}
+					//Joystick button press
+					else if ( e.type == SDL_JOYBUTTONDOWN )
+					{
+						//Use game controller
+						if ( gGameController != nullptr )
+						{
+							//Play rumble at 75% strenght for 500 milliseconds
+							if ( SDL_GameControllerRumble( gGameController, 0xFFFF * 3 / 4, 0xFFFF * 3 / 4, 500 ) != 0 )
+							{
+								Debug::Log( "Warning: Unable to play game controller rumble! %s\n", SDL_GetError() );
+							}
+						}
+						//Use haptics
+						else if ( gJoyHaptic != nullptr )
+						{
+							//Play rumble at 75% strenght for 500 milliseconds
+							if ( SDL_HapticRumblePlay( gJoyHaptic, 0.75, 500 ) != 0 )
+							{
+								Debug::Log( "Warning: Unable to play haptic rumble! %s\n", SDL_GetError() );
+							}
+						}
+					}
 
 					for (int i = 0; i < TOTAL_BUTTONS; i++)
 					{
@@ -209,6 +240,7 @@ int main(int argc, char* args[] )
 
 				//Update screen
 				SDL_RenderPresent( gRenderer );
+				SDL_Haptic* gJoyHaptic = nullptr;
 			}
 		}
 	}
@@ -226,7 +258,7 @@ bool init()
 	bool success = true;
 
 	//Initialize SDL
-	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_JOYSTICK ) < 0 )
+	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER ) < 0 )
 	{
 		// printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
 		Debug::Log("SDL could not initialize! SDL_Error: %s", SDL_GetError() );
@@ -248,11 +280,55 @@ bool init()
 		}
 		else
 		{
-			//Load joystick
-			gGameController = SDL_JoystickOpen( 0 );
+			//Check if first joystick is game controller interface compatible
+			if ( !SDL_IsGameController( 0 ) )
+			{
+				Debug::Log( "Warning: Joystick is not game controller interface compatible! SDL Error: %s\n", SDL_GetError() );
+			}
+			else 
+			{
+				//Open game controller and check if it supports rumble
+				gGameController = SDL_GameControllerOpen( 0 );
+				if ( !SDL_GameControllerHasRumble( gGameController ) )
+				{
+					Debug::Log( "Warning: Game controller does not have rumble! SDL Error: %s\n", SDL_GetError() );
+				}
+			}
+
+			//Load joystick if game controller could not be loaded
 			if ( gGameController == nullptr )
 			{
-				Debug::Log("Warning: Unable to open game controller! SDL Error: %s");
+				//Open first joystick
+				gJoystick = SDL_JoystickOpen( 0 );
+				if ( gJoystick == nullptr )
+				{
+					Debug::Log("Warning: Unable to open game controller! SDL Error: %s");
+				}
+				else 
+				{
+					//Check if joystick supports haptic
+					if ( !SDL_JoystickIsHaptic( gJoystick ) )
+					{
+						Debug::Log( "Warning: Controller does not support haptics! SDL Error: %s\n", SDL_GetError() );
+					}
+					else
+					{
+						//Get joystick haptic device
+						gJoyHaptic = SDL_HapticOpenFromJoystick( gJoystick );
+						if ( gJoyHaptic == nullptr )
+						{
+							Debug::Log( "Warning: Unable to get joystick haptics! SDL Error: %s\n", SDL_GetError() );
+						}
+						else
+						{
+							//Initialize rumble
+							if ( SDL_HapticRumbleInit( gJoyHaptic ) < 0 )
+							{
+								Debug::Log( "Warning: Unable to initialize haptic rumble! SDL Error: %s\n", SDL_GetError() );
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -374,9 +450,23 @@ void close()
 //	  TTF_CloseFont( gFont );
 //	  gFont = nullptr;
 
-	//Close game controller
-	SDL_JoystickClose( gGameController );
+	//Close game controller or joystick with haptics
+	if ( gGameController != nullptr)
+	{
+		SDL_GameControllerClose( gGameController );
+	}
+	if ( gJoyHaptic != nullptr )
+	{
+		SDL_HapticClose( gJoyHaptic );
+	}
+	if ( gJoystick != nullptr )
+	{
+		SDL_JoystickClose( gJoystick );
+	}
 	gGameController = nullptr;
+	gJoyHaptic = nullptr;
+	gJoystick = nullptr;
+
 
 	//Destroy window
 	SDL_DestroyRenderer( gRenderer );
