@@ -5,12 +5,18 @@
 #include <SDL2/SDL_gamecontroller.h>
 #include <SDL2/SDL_haptic.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_joystick.h>
 #include <SDL2/SDL_ttf.h>
+
 #include <cmath>
+#include <stdio.h>
+#include <string>
+
 #include "LTexture.h"
 #include "LButton.h"
 #include "../Debugging/Debug.h"
+
 
 
 //Screen dimension constants
@@ -20,7 +26,7 @@ const int SCREEN_HEIGHT = 480;
 //Analog joystick dead zone
 const int JOYSTICK_DEAD_ZONE = 8000;
 
-//Key press surfaces constants
+// Key press surfaces constants
 enum KeyPressSurfaces
 {
 	KEY_PRESS_SURFACE_DEFAULT,
@@ -62,6 +68,8 @@ LTexture gPressTexture;
 
 LTexture gArrowTexture;
 
+LTexture gPromptTexture;
+
 //Buttons objects
 LButton gButtons[ TOTAL_BUTTONS ];
 
@@ -71,6 +79,15 @@ SDL_GameController* gGameController = nullptr;
 //Joystick handler with haptic
 SDL_Joystick* gJoystick = nullptr;
 SDL_Haptic* gJoyHaptic = nullptr;
+
+//The music that will be played
+Mix_Music *gMusic = nullptr;
+
+//The sound effects that will be used
+Mix_Chunk *gScratch = nullptr;
+Mix_Chunk *gHigh = nullptr;
+Mix_Chunk *gMedium = nullptr;
+Mix_Chunk *gLow = nullptr;
 
 //The image we will load and show on the screen
 int main(int argc, char* args[] )
@@ -120,6 +137,56 @@ int main(int argc, char* args[] )
 					{
 						switch (e.key.keysym.sym)
 						{
+              //Play high sound effect
+              case SDLK_1:
+                Mix_PlayChannel( -1, gHigh, 0 );
+                break;
+              
+              //Play medium sound effect
+              case SDLK_2:
+                Mix_PlayChannel( -1, gMedium, 0 );
+                break;
+              
+              //Play low sound effect
+              case SDLK_3:
+                Mix_PlayChannel( -1, gLow, 0 );
+                break;
+              
+              //Play scratch sound effect
+              case SDLK_4:
+                Mix_PlayChannel( -1, gScratch, 0 );
+                break;
+
+              case SDLK_9:
+                //If there is no music playing
+                if( Mix_PlayingMusic() == 0 )
+                {
+                    //Play the music
+                    Mix_PlayMusic( gMusic, -1 );
+                }
+                //If music is being played
+                else
+                {
+                    //If the music is paused
+                    if( Mix_PausedMusic() == 1 )
+                    {
+                        //Resume the music
+                        Mix_ResumeMusic();
+                    }
+                    //If the music is playing
+                    else
+                    {
+                        //Pause the music
+                        Mix_PauseMusic();
+                    }
+                }
+                break;
+                
+              case SDLK_0:
+                //Stop the music
+                Mix_HaltMusic();
+                break;
+
 							//Exit on ESCAPE
 							case SDLK_ESCAPE:
 								quit = true;
@@ -235,8 +302,11 @@ int main(int argc, char* args[] )
 				}
 
 				//Render joystick 8 way angle
-				gArrowTexture.render((SCREEN_WIDTH - gArrowTexture.getWidth()) / 2, (SCREEN_HEIGHT - gArrowTexture.getHeight()) / 2,
-									 nullptr, joystickAngle);
+				// gArrowTexture.render((SCREEN_WIDTH - gArrowTexture.getWidth()) / 2, (SCREEN_HEIGHT - gArrowTexture.getHeight()) / 2,
+				// 					 nullptr, joystickAngle);
+
+        //Render Promp texture
+        gPromptTexture.render((SCREEN_WIDTH - gPromptTexture.getWidth()) / 2 , (SCREEN_HEIGHT - gPromptTexture.getHeight()) / 2);
 
 				//Update screen
 				SDL_RenderPresent( gRenderer );
@@ -258,7 +328,7 @@ bool init()
 	bool success = true;
 
 	//Initialize SDL
-	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER ) < 0 )
+	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO  ) < 0 )
 	{
 		// printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
 		Debug::Log("SDL could not initialize! SDL_Error: %s", SDL_GetError() );
@@ -364,6 +434,13 @@ bool init()
 					success = false;
 				}
 
+        //Initialize SDL_mixer
+        if ( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 )
+        {
+          Debug::Log( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+          success = false;
+        }
+
 				//Initialize SDL_ttf
 				if( TTF_Init() == -1)
 				{
@@ -382,41 +459,85 @@ bool loadMedia()
 	//Loading success flag
 	bool success = true;
 
-	if(!gUpTexture.loadFromFile("../assets/up.png"))
-	{
-		Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
-		success = false;	
-	}
+  //Load prompt texture
+  if ( !gPromptTexture.loadFromFile( "../assets/prompt.png" ))
+  {
+    Debug::Log( "Failed to load prompt texture!\n" );
+    success = false;
+  }
 
-	if(!gDownTexture.loadFromFile("../assets/down.png"))
-	{
-		Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
-		success = false;	
-	}
+  //Load music
+  gMusic = Mix_LoadMUS( "../assets/audio/beat.wav" );
+  if( gMusic == nullptr )
+  {
+    printf( "Failed to load beat music! SDL_mixer Error: %s\n", Mix_GetError() );
+    success = false;
+  }
+  
+  //Load sound effects
+  gScratch = Mix_LoadWAV( "../assets/audio/scratch.wav" );
+  if( gScratch == nullptr )
+  {
+    printf( "Failed to load scratch sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
+    success = false;
+  }
+  
+  gHigh = Mix_LoadWAV( "../assets/audio/high.wav" );
+  if( gHigh == nullptr )
+  {
+    printf( "Failed to load high sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
+    success = false;
+  }
 
-	if(!gLeftTexture.loadFromFile("../assets/left.png"))
-	{
-		Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
-		success = false;	
-	}
+  gMedium = Mix_LoadWAV( "../assets/audio/medium.wav" );
+  if( gMedium == nullptr )
+  {
+    printf( "Failed to load medium sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
+    success = false;
+  }
 
-	if(!gRightTexture.loadFromFile("../assets/right.png"))
-	{
-		Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
-		success = false;	
-	}
+  gLow = Mix_LoadWAV( "../assets/audio/low.wav" );
+  if( gLow == nullptr )
+  {
+    printf( "Failed to load low sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
+    success = false;
+  }
 
-	if(!gPressTexture.loadFromFile("../assets/press.png"))
-	{
-		Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
-		success = false;	
-	}
-
-	if (!gArrowTexture.loadFromFile("../assets/arrow.png"))
-	{
-		Debug::Log("Falied to load arrow sprite! SDL_IMG Error: %s!", IMG_GetError());
-		success = false;
-	}
+	// if(!gUpTexture.loadFromFile("../assets/up.png"))
+	// {
+	// 	Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+	// 	success = false;	
+	// }
+	//
+	// if(!gDownTexture.loadFromFile("../assets/down.png"))
+	// {
+	// 	Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+	// 	success = false;	
+	// }
+	//
+	// if(!gLeftTexture.loadFromFile("../assets/left.png"))
+	// {
+	// 	Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+	// 	success = false;	
+	// }
+	//
+	// if(!gRightTexture.loadFromFile("../assets/right.png"))
+	// {
+	// 	Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+	// 	success = false;	
+	// }
+	//
+	// if(!gPressTexture.loadFromFile("../assets/press.png"))
+	// {
+	// 	Debug::Log("Failed to load sprite! SDL_IMG Error: %s!", IMG_GetError());
+	// 	success = false;	
+	// }
+	//
+	// if (!gArrowTexture.loadFromFile("../assets/arrow.png"))
+	// {
+	// 	Debug::Log("Falied to load arrow sprite! SDL_IMG Error: %s!", IMG_GetError());
+	// 	success = false;
+	// }
 
 	// if (!gButtonSpriteSheetTexture.loadFromFile("../assets/button.png"))
 	// {
@@ -444,7 +565,21 @@ bool loadMedia()
 void close()
 {
 	//Free loaded images
-	gButtonSpriteSheetTexture.free();
+  gPromptTexture.free();
+
+  //Free the sound effects
+  Mix_FreeChunk( gScratch );
+  Mix_FreeChunk( gHigh );
+  Mix_FreeChunk( gMedium );
+  Mix_FreeChunk( gLow );
+  gScratch = nullptr;
+  gHigh = nullptr;
+  gMedium = nullptr;
+  gLow = nullptr;
+
+  //Free the music
+  Mix_FreeMusic( gMusic );
+  gMusic = nullptr;
 
 //	  //Free global font
 //	  TTF_CloseFont( gFont );
@@ -475,7 +610,8 @@ void close()
 	gRenderer = nullptr;
 
 	//Quit SDL subsystem
-	TTF_Quit();
+	// TTF_Quit();
+  Mix_Quit();
 	IMG_Quit();
 	SDL_Quit();
 }
